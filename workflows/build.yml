@@ -1,0 +1,78 @@
+name: CI-pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The Version You Wanna Deploy To Test Env (First 7 Github SHA)'
+        required: true
+        default: "latest"
+env:
+  DEPLOY_ENV: dev
+jobs:
+  CI_CD:
+    runs-on: [ self-hosted,app ]
+    # --- log start time for build metrics
+    outputs:
+      start_time: ${{steps.build_start_time.outputs.start_time}}
+    steps:
+      - name: Log Build Start Time
+        id: build_start_time
+        run: echo "::set-output name=start_time::$(date +%s)"
+
+      - name: Deploy to dev
+        run: echo deployed
+  post-workflow-status:
+    if: always()
+    name: Post Workflow Status
+    needs:
+      - CI_CD
+    runs-on: [self-hosted,app]
+    steps:
+      - name: Slack Workflow Notification
+        uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{secrets.GITHUB_TOKEN}}
+          slack_webhook_url: ${{secrets.SLACK_WEBHOOK_URL}}
+          channel: '#tomo_tech_github_actions_notifications'
+          name: Github Actions Workflow Bot
+          icon_emoji: ':rocket:'
+          include_jobs: true
+
+      #--- Send events and metrics to Datadog ----
+      - uses: haya14busa/action-cond@v1
+        id: result_details
+        with:
+          cond: ${{ needs.CI_CD.result == 'failure' }}
+          if_true: "error"
+          if_false: ${{ needs.CI_CD.result }}
+      - id: github-sha-trunc
+        run: |
+          echo "::set-output name=id::$(echo ${{github.sha}} | cut -b 30-)"
+          echo "BUILD_TIME=$(( $(date +%s)- ${{ needs.CI_CD.outputs.start_time }} ))" >> $GITHUB_ENV
+      - name: Send Metrics to Datadog
+        uses: Tomoloyalty/datadog-metrics-action@master
+        with:
+          result: ${{ needs.CI_CD.result }}
+          env-name: ${{ env.DEPLOY_ENV }}
+          github-context: ${{ tojson(github) }}
+          api-key: ${{ secrets.DATADOG_API_KEY }}
+          events: |
+            - title: "#${{ github.run_number }} - ${{ github.repository }} Build Result: ${{ needs.CI_CD.result }}"
+              text: "Commit ${{steps.github-sha-trunc.outputs.id}} : ${{ github.event.head_commit.message }} -by: ${{ github.event.head_commit.author.name }}"
+              alert_type: ${{ steps.result_details.outputs.value }}
+              host: ${{ github.repository_owner }}
+          metrics: |
+            - name: "build.duration"
+              value: "${{ env.BUILD_TIME }}"
+              host: "Github"
+      - name: Debug GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ tojson(github) }}
+          ENVIRONMENT: ${{ github.event.deployment.environment }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+          echo $ENVIRONMENT
+
