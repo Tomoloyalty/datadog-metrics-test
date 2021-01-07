@@ -33,16 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       #--- Send events and metrics to Datadog ----
-      - uses: haya14busa/action-cond@v1
-        id: result_details
-        with:
-          cond: ${{ needs.CI_CD.result == 'failure' }}
-          if_true: "error"
-          if_false: ${{ needs.CI_CD.result }}
-      - id: github-sha-trunc
-        run: |
-          echo "::set-output name=id::$(echo ${{github.sha}} | cut -b 30-)"
-          echo "BUILD_TIME=$(( $(date +%s)- ${{ needs.CI_CD.outputs.start_time }} ))" >> $GITHUB_ENV
+#      - uses: haya14busa/action-cond@v1
+#        id: result_details
+#        with:
+#          cond: ${{ needs.CI_CD.result == 'failure' }}
+#          if_true: "error"
+#          if_false: ${{ needs.CI_CD.result }}
+#      - id: github-sha-trunc
+#        run: |
+#          echo "::set-output name=id::$(echo ${{github.sha}} | cut -b 30-)"
+#          echo "BUILD_TIME=$(( $(date +%s)- ${{ needs.CI_CD.outputs.start_time }} ))" >> $GITHUB_ENV
       - name: Send Metrics to Datadog
         uses: Tomoloyalty/datadog-metrics-action@master
         with:
@@ -50,23 +50,7 @@ jobs:
           env-name: ${{ env.DEPLOY_ENV }}
           github-context: ${{ tojson(github) }}
           api-key: ${{ secrets.DATADOG_API_KEY }}
-          events: |
-            - title: "#${{ github.run_number }} - ${{ github.repository }} Build Result: ${{ needs.CI_CD.result }}"
-              text: "Commit ${{steps.github-sha-trunc.outputs.id}} : ${{ github.event.head_commit.message }} -by: ${{ github.event.head_commit.author.name }}"
-              alert_type: ${{ steps.result_details.outputs.value }}
-              host: ${{ github.repository_owner }}
           metrics: |
             - name: "build.duration"
               value: "${{ env.BUILD_TIME }}"
               host: "Github"
-      - name: Debug GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ tojson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-      - name: Debug GitHub env
-        env:
-          ENVIRONMENT: ${{ github.event.deployment.environment }}
-        run: |
-          echo $ENVIRONMENT
-
