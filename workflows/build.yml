@@ -11,9 +11,10 @@ on:
         default: "latest"
 env:
   DEPLOY_ENV: dev
+  
 jobs:
   CI_CD:
-    runs-on: [ self-hosted,app ]
+    runs-on: [ ubuntu:latest ]
     # --- log start time for build metrics
     outputs:
       start_time: ${{steps.build_start_time.outputs.start_time}}
@@ -29,7 +30,7 @@ jobs:
     name: Post Workflow Status
     needs:
       - CI_CD
-    runs-on: [self-hosted,app]
+    runs-on: [ubuntu:latest]
     steps:
       - name: Slack Workflow Notification
         uses: Gamesight/slack-workflow-status@master
