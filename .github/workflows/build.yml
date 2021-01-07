@@ -36,8 +36,8 @@ jobs:
       - name: Send Metrics to Datadog
         uses: Tomoloyalty/datadog-metrics-action@master
         with:
-          result: ${{ needs.CI_CD.result }}
-          env-name: ${{ env.DEPLOY_ENV }}
-          github-context: ${{ tojson(github) }}
+#          result: ${{ needs.CI_CD.result }}
+#          env-name: ${{ env.DEPLOY_ENV }}
+#          github-context: ${{ tojson(github) }}
           api-key: ${{ secrets.DATADOG_API_KEY }}
-          start-timestamp: ${{ needs.CI_CD.outputs.start_time }}
+#          start-timestamp: ${{ needs.CI_CD.outputs.start_time }}
