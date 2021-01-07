@@ -62,8 +62,11 @@ jobs:
       - name: Debug GitHub context
         env:
           GITHUB_CONTEXT: ${{ tojson(github) }}
-          ENVIRONMENT: ${{ github.event.deployment.environment }}
         run: |
           echo "$GITHUB_CONTEXT"
+      - name: Debug GitHub env
+        env:
+          ENVIRONMENT: ${{ github.event.deployment.environment }}
+        run: |
           echo $ENVIRONMENT
 
