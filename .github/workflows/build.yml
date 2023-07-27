@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Log Build Start Time
         id: build_start_time
-        run: echo "::set-output name=start_time::$(date +%s)"
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Deploy to dev
         run: echo deployed
